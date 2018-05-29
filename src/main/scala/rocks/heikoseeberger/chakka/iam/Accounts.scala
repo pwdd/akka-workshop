@@ -1,9 +1,16 @@
 package rocks.heikoseeberger.chakka.iam
 
+import akka.NotUsed
+import akka.actor.Scheduler
+import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Flow, Framing}
+import akka.util.{ByteString, Timeout}
 import org.apache.logging.log4j.scala.Logging
 
+import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
 
 object Accounts extends Logging {
@@ -36,4 +43,18 @@ object Accounts extends Logging {
         }
     }
   }
+
+  def load[T](accounts: ActorRef[CreateAccount], askTimeout: FiniteDuration)
+             (implicit mat: Materializer,
+              scheduler: Scheduler
+             ): Flow[ByteString, CreateAccountReply, NotUsed] = {
+    implicit val timeout: Timeout = askTimeout
+    Flow[ByteString]
+      .via(Framing.delimiter(ByteString("\n"), 256, allowTruncation = true))
+      .map(_.utf8String)
+      .mapAsync(parallelism = 1)(accounts ? createAccount(_))
+  }
+
+  def createAccount(username: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
+    CreateAccount(username, replyTo)
 }
