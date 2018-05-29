@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  chakka-iam:
+    image: hseeberger/chakka-iam:latest
+    ports:
+      - 80
+      - 19999
+    command: [
+      "-Dcassandra-journal.contact-points.0=cassandra:9042",
+      "-Dcassandra-snapshot-store.contact-points.0=cassandra:9042"
+    ]
+
+  cassandra:
+    image: cassandra:3.11.2
+    ports:
+      - "9042:9042"

@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) Heiko Seeberger
+ */
+
+package rocks.heikoseeberger.chakka
+
+package object iam {
+
+  type Traversable[+A] = scala.collection.immutable.Traversable[A]
+  type Iterable[+A]    = scala.collection.immutable.Iterable[A]
+  type Seq[+A]         = scala.collection.immutable.Seq[A]
+  type IndexedSeq[+A]  = scala.collection.immutable.IndexedSeq[A]
+}
