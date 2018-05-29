@@ -137,13 +137,7 @@ lazy val scalafmtSettings =
   )
 
 lazy val headerSettings =
-  Seq(
-    headerLicense := Some(HeaderLicense.Custom(
-      s"""|Copyright (c) ${organizationName.value}
-          |""".stripMargin
-    )),
-    excludeFilter.in(headerSources) := excludeFilter.in(headerSources).value || "Passwords.java"
-  )
+  Seq(excludeFilter.in(headerSources) := excludeFilter.in(headerSources).value || "Passwords.java")
 
 lazy val dockerSettings =
   Seq(
