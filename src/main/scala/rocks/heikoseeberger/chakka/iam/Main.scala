@@ -9,7 +9,7 @@ import pureconfig.loadConfigOrThrow
 object Main extends Logging {
 
   sealed trait Command
-  final case class Config()
+  final case class Config(accounts: Accounts.Config)
 
   def main(args: Array[String]): Unit = {
     sys.props += "log4j2.contextSelector" -> classOf[AsyncLoggerContextSelector].getName // async logging
@@ -22,7 +22,7 @@ object Main extends Logging {
 
   def apply(config: Config): Behavior[Command] =
     Behaviors.setup { context =>
-      val accounts = context.spawn(Accounts(), "accounts")
+      val accounts = context.spawn(Accounts(config.accounts), "accounts")
       context.watch(accounts)
 
       Behaviors.receiveSignal {
