@@ -5,6 +5,8 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorSystem, Behavior, Terminated}
 import akka.actor.{CoordinatedShutdown, Scheduler, ActorSystem => UntypedSystem}
 import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
+import akka.management.AkkaManagement
+import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.stream.Materializer
@@ -16,7 +18,6 @@ import pureconfig.loadConfigOrThrow
 object Main extends Logging {
   import akka.actor.typed.scaladsl.adapter._
 
-  sealed trait Command
   final case class Config(accounts: Accounts.Config, authenticator: Authenticator.Config, api: Api.Config)
 
   final case object TopLevelActorTerminated extends Reason
@@ -27,7 +28,10 @@ object Main extends Logging {
     val config = loadConfigOrThrow[Config]("chakka-iam")
     val system = ActorSystem(Main(config), "chakka-iam")
 
-    logger.info(s"${system.name} started")
+    AkkaManagement(system.toUntyped).start()
+    ClusterBootstrap(system.toUntyped).start()
+
+    logger.info(s"${system.name} started and ready to join cluster")
   }
 
   def apply(config: Config): Behavior[SelfUp] = {
