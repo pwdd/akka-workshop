@@ -1,7 +1,3 @@
-/*
- * Copyright (c) Heiko Seeberger
- */
-
 package rocks.heikoseeberger.chakka
 
 package object iam {

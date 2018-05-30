@@ -1,8 +1,8 @@
 package rocks.heikoseeberger.chakka.iam
 
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.{ ActorRef, Behavior }
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
-import akka.persistence.typed.scaladsl.{Effect, PersistentBehaviors}
+import akka.persistence.typed.scaladsl.{ Effect, PersistentBehaviors }
 import org.apache.logging.log4j.scala.Logging
 
 import scala.util.matching.Regex
@@ -12,13 +12,18 @@ object Accounts extends Logging {
   sealed trait Event
   final case class CreateAccount(username: String,
                                  password: String,
-                                 replyTo: ActorRef[CreateAccountReply]) extends Command
+                                 replyTo: ActorRef[CreateAccountReply])
+      extends Command
 
   sealed trait CreateAccountReply
-  final case object UsernameTaken extends CreateAccountReply
+  final case object UsernameTaken   extends CreateAccountReply
   final case object UsernameInvalid extends CreateAccountReply
   final case object PasswordInvalid extends CreateAccountReply
-  final case class AccountCreated(username: String, passwordHash: String) extends CreateAccountReply with Event
+  final case class AccountCreated(username: String, passwordHash: String)
+      extends CreateAccountReply
+      with Event
+
+  final case object Stop extends Command
 
   final case class Config(usernameRegex: Regex, passwordRegex: Regex)
 
@@ -49,12 +54,15 @@ object Accounts extends Logging {
             replyTo ! accountCreated.copy(passwordHash = "")
           }
       }
+
+    case (_, _, Stop) => Effect.stop
   }
 
   def eventHandler: (State, Event) => State = {
     case (State(usernames), AccountCreated(username, _)) => State(usernames + username)
   }
 
-  def createAccount(username: String, password: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
+  def createAccount(username: String,
+                    password: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
     CreateAccount(username, password, replyTo)
 }

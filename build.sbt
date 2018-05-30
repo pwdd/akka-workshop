@@ -5,7 +5,7 @@
 lazy val `chakka-iam` =
   project
     .in(file("."))
-    .enablePlugins(AutomateHeaderPlugin, DockerPlugin, JavaAppPackaging)
+    .enablePlugins(DockerPlugin, JavaAppPackaging)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
@@ -105,7 +105,6 @@ lazy val library =
 lazy val settings =
   commonSettings ++
   scalafmtSettings ++
-  headerSettings ++
   dockerSettings ++
   commandAliases
 
@@ -135,9 +134,6 @@ lazy val scalafmtSettings =
   Seq(
     scalafmtOnCompile := true
   )
-
-lazy val headerSettings =
-  Seq(excludeFilter.in(headerSources) := excludeFilter.in(headerSources).value || "Passwords.java")
 
 lazy val dockerSettings =
   Seq(
