@@ -45,6 +45,9 @@ object Main extends Logging {
       val accounts = context.spawn(Accounts(config.accounts), "accounts")
       context.watch(accounts)
 
+      val authenticator = context.spawn(Authenticator(), "authenticator")
+      context.watch(authenticator)
+
       loadAccounts(initialAccounts, askTimeout, accounts)
 
       Behaviors.receiveSignal {

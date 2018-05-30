@@ -15,31 +15,39 @@ import scala.util.matching.Regex
 
 object Accounts extends Logging {
   sealed trait Command
-  final case class CreateAccount(username: String, replyTo: ActorRef[CreateAccountReply]) extends Command
+  final case class CreateAccount(username: String,
+                                 password: String,
+                                 replyTo: ActorRef[CreateAccountReply]) extends Command
 
   sealed trait CreateAccountReply
   final case object UsernameTaken extends CreateAccountReply
-  final case class AccountCreated(username: String) extends CreateAccountReply
   final case object UsernameInvalid extends CreateAccountReply
+  final case object PasswordInvalid extends CreateAccountReply
+  final case class AccountCreated(username: String) extends CreateAccountReply
 
-  final case class Config(usernameRegex: Regex)
+  final case class Config(usernameRegex: Regex, passwordRegex: Regex)
 
-  def apply(config: Config, usernames: Set[String] = Set.empty): Behavior[Command] = {
+  def apply(config: Config,
+            authenticator: ActorRef[Authenticator.Command],
+            usernames: Set[String] = Set.empty): Behavior[Command] = {
     import config._
 
     Behaviors.receiveMessage {
-      case CreateAccount(username, replyTo) =>
+      case CreateAccount(username, password, replyTo) =>
         if (usernames contains username) {
           replyTo ! UsernameTaken
           Behaviors.same
         } else if (!usernameRegex.pattern.matcher(username).matches) {
           replyTo ! UsernameInvalid
           Behaviors.same
+        } else if (!passwordRegex.pattern.matcher(password).matches) {
+          replyTo ! PasswordInvalid
+          Behaviors.same
         } else {
-          val accountCreated = AccountCreated(username)
+          authenticator ! Authenticator.AddCredentials(username, Passwords.createHash(password))
+          replyTo ! AccountCreated(username)
           logger.info(s"Account for $username created")
-          replyTo ! accountCreated
-          Accounts(config, usernames + username)
+          Accounts(config, authenticator, usernames + username)
         }
     }
   }
@@ -55,6 +63,6 @@ object Accounts extends Logging {
       .mapAsync(parallelism = 1)(accounts ? createAccount(_))
   }
 
-  def createAccount(username: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
-    CreateAccount(username, replyTo)
+  def createAccount(username: String, password: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
+    CreateAccount(username, password, replyTo)
 }
