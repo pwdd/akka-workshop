@@ -18,7 +18,7 @@ object Accounts extends Logging {
   final case object UsernameTaken extends CreateAccountReply
   final case object UsernameInvalid extends CreateAccountReply
   final case object PasswordInvalid extends CreateAccountReply
-  final case class AccountCreated(username: String) extends CreateAccountReply with Event
+  final case class AccountCreated(username: String, passwordHash: String) extends CreateAccountReply with Event
 
   final case class Config(usernameRegex: Regex, passwordRegex: Regex)
 
@@ -26,15 +26,10 @@ object Accounts extends Logging {
 
   final val PersistenceId = "accounts"
 
-  def apply(config: Config,
-            authenticator: ActorRef[Authenticator.Command]): Behavior[Command] =
-    PersistentBehaviors.receive(PersistenceId,
-      State(),
-      commandHandler(config, authenticator),
-      eventHandler)
+  def apply(config: Config): Behavior[Command] =
+    PersistentBehaviors.receive(PersistenceId, State(), commandHandler(config), eventHandler)
 
-  def commandHandler(config: Config,
-                     authenticator: ActorRef[Authenticator.Command]): CommandHandler[Command, Event, State] = {
+  def commandHandler(config: Config): CommandHandler[Command, Event, State] = {
     case (_, State(usernames), CreateAccount(username, password, replyTo)) =>
       if (usernames contains username) {
         replyTo ! UsernameTaken
@@ -46,19 +41,18 @@ object Accounts extends Logging {
         replyTo ! PasswordInvalid
         Effect.none
       } else {
-        val accountCreated = AccountCreated(username)
+        val accountCreated = AccountCreated(username, Passwords.createHash(password))
         Effect
           .persist(accountCreated)
           .andThen {
             logger.info(s"Account for $username created")
-            authenticator ! Authenticator.AddCredentials(username, Passwords.createHash(password))
-            replyTo ! AccountCreated(username)
+            replyTo ! accountCreated.copy(passwordHash = "")
           }
       }
   }
 
   def eventHandler: (State, Event) => State = {
-    case (State(usernames), AccountCreated(username)) => State(usernames + username)
+    case (State(usernames), AccountCreated(username, _)) => State(usernames + username)
   }
 
   def createAccount(username: String, password: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
