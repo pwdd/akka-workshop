@@ -39,7 +39,7 @@ object Api extends Logging {
 
   final case object BindFailure extends Reason
 
-  final case class SignUp(username: String, password: String)
+  final case class SignUp(username: String, password: String, nickname: String)
 
   final case class SignIn(username: String, password: String)
 
@@ -103,8 +103,8 @@ object Api extends Logging {
         pathEnd {
           post {
             entity(as[SignUp]) {
-              case SignUp(username, password) =>
-                onSuccess(accounts ? createAccount(username, password)) {
+              case SignUp(username, password, nickname) =>
+                onSuccess(accounts ? createAccount(username, password, nickname)) {
                   case UsernameInvalid   => complete(BadRequest)
                   case UsernameTaken     => complete(Conflict)
                   case PasswordInvalid   => complete(BadRequest)

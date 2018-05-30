@@ -1,3 +1,7 @@
+Project developed during Akka in Practice workshop, ScalaDays - Berlin 2018
+
+---
+
 # Chakka IAM #
 
 Chakka is an explanatory chat application based upon reactive and autonomous services implemented

@@ -12,6 +12,7 @@ object Accounts extends Logging {
   sealed trait Event
   final case class CreateAccount(username: String,
                                  password: String,
+                                 nickname: String,
                                  replyTo: ActorRef[CreateAccountReply])
       extends Command
 
@@ -19,7 +20,7 @@ object Accounts extends Logging {
   final case object UsernameTaken   extends CreateAccountReply
   final case object UsernameInvalid extends CreateAccountReply
   final case object PasswordInvalid extends CreateAccountReply
-  final case class AccountCreated(username: String, passwordHash: String)
+  final case class AccountCreated(username: String, passwordHash: String, nickname: String)
       extends CreateAccountReply
       with Event
 
@@ -35,7 +36,7 @@ object Accounts extends Logging {
     PersistentBehaviors.receive(PersistenceId, State(), commandHandler(config), eventHandler)
 
   def commandHandler(config: Config): CommandHandler[Command, Event, State] = {
-    case (_, State(usernames), CreateAccount(username, password, replyTo)) =>
+    case (_, State(usernames), CreateAccount(username, password, nickname, replyTo)) =>
       if (usernames contains username) {
         replyTo ! UsernameTaken
         Effect.none
@@ -46,7 +47,7 @@ object Accounts extends Logging {
         replyTo ! PasswordInvalid
         Effect.none
       } else {
-        val accountCreated = AccountCreated(username, Passwords.createHash(password))
+        val accountCreated = AccountCreated(username, Passwords.createHash(password), nickname)
         Effect
           .persist(accountCreated)
           .andThen {
@@ -59,10 +60,11 @@ object Accounts extends Logging {
   }
 
   def eventHandler: (State, Event) => State = {
-    case (State(usernames), AccountCreated(username, _)) => State(usernames + username)
+    case (State(usernames), AccountCreated(username, _, _)) => State(usernames + username)
   }
 
   def createAccount(username: String,
-                    password: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
-    CreateAccount(username, password, replyTo)
+                    password: String,
+                    nickname: String)(replyTo: ActorRef[CreateAccountReply]): CreateAccount =
+    CreateAccount(username, password, nickname, replyTo)
 }

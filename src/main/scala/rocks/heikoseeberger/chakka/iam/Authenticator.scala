@@ -93,7 +93,7 @@ object Authenticator extends Logging {
     readJournal
       .eventsByPersistenceId(Accounts.PersistenceId, lastSeqNo + 1, Long.MaxValue)
       .collect {
-        case EventEnvelope(_, _, seqNo, Accounts.AccountCreated(username, passwordHash)) =>
+        case EventEnvelope(_, _, seqNo, Accounts.AccountCreated(username, passwordHash, _)) =>
           Authenticator.AddCredentials(seqNo, username, passwordHash, _: ActorRef[Done])
       }
       .mapAsync(1)(authenticator ? _)
